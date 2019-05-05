@@ -31,14 +31,11 @@
     td:nth-of-type(3) {
         text-align: left;
     }
-    td:nth-of-type(4) {
+    #ne td:nth-of-type(4) {
         display: none;
     }
-
-    select {
-        position: absolute;
-        right: 10px;
-        top: 40px;
+    #inventory {
+        table-layout: fixed;
     }
     .pass {
         background-color: rgb(198,239,206);
@@ -59,7 +56,7 @@
     }
     function sortByProperty(propertyName){
         var sortFun = function(obj1,obj2){
-            if (propertyName == "ip") {
+            if (propertyName == "0") {
                 return parseIp(obj1[propertyName]) - parseIp(obj2[propertyName]);
             }else if(propertyName == "seconds"){
                 return obj1[propertyName] - obj2[propertyName]
@@ -74,38 +71,52 @@
         return sortFun;
     }
     window.onload = function() {
-        getNumber()
-        test("ip");
+        getNumber();
+        test(0, "0");
+        test(1, "0");
     };
     function getNumber() {
         document.getElementById('n1').innerText = document.getElementsByTagName('table')[0].rows.length-1;
-        // document.getElementById('n2').innerText = document.getElementsByTagName('table')[1].rows.length;
     }
-    function test(property = document.getElementById("sort").value) {
-        tr_list = document.getElementsByTagName("table")[0].getElementsByTagName("tr");
+    function test(tid, property) {
+        // property = document.getElementById("sort").value
+        tr_list = document.getElementsByTagName("table")[tid].getElementsByTagName("tr");
         var itemArray = new Array()
         for (var i = tr_list.length - 1; i >= 1; i--) {
-            itemArray[i-1]= {
-                ip: tr_list[i].getElementsByTagName("td")[0].innerText.trim(),
-                version: tr_list[i].getElementsByTagName("td")[1].innerText.trim(),
-                time: tr_list[i].getElementsByTagName("td")[2].innerText.trim(),
-                seconds: tr_list[i].getElementsByTagName("td")[3].innerText.trim(),
-                dswp: tr_list[i].getElementsByTagName("td")[4].innerText.trim(),
-                cfpal: tr_list[i].getElementsByTagName("td")[5].innerText.trim(),
-                system: tr_list[i].getElementsByTagName("td")[6].innerText.trim()
-            };
+            td_list = tr_list[i].getElementsByTagName("td")
+            itemArray[i-1] = new Array()
+            for (var j = 0; j <= td_list.length - 1; j++) {
+                itemArray[i-1].push(td_list[j].innerText.trim());
+            }
+            // itemArray[i-1].append()
+            // itemArray[i-1]= {
+            //     ip: tr_list[i].getElementsByTagName("td")[0].innerText.trim(),
+            //     version: tr_list[i].getElementsByTagName("td")[1].innerText.trim(),
+            //     time: tr_list[i].getElementsByTagName("td")[2].innerText.trim(),
+            //     seconds: tr_list[i].getElementsByTagName("td")[3].innerText.trim(),
+            //     dswp: tr_list[i].getElementsByTagName("td")[4].innerText.trim(),
+            //     cfpal: tr_list[i].getElementsByTagName("td")[5].innerText.trim(),
+            //     if (tid == 0) {
+            //         system: tr_list[i].getElementsByTagName("td")[6].innerText.trim()
+            //     }
+            // };
         }
         itemArray.sort(sortByProperty(property))
         for (var i = tr_list.length - 1; i >= 1; i--) {
-            tr_list[i].getElementsByTagName("td")[0].innerText = itemArray[i-1].ip;
-            tr_list[i].getElementsByTagName("td")[1].innerText = itemArray[i-1].version;
-            tr_list[i].getElementsByTagName("td")[2].innerText = itemArray[i-1].time;
-            tr_list[i].getElementsByTagName("td")[3].innerText = itemArray[i-1].seconds;
-            tr_list[i].getElementsByTagName("td")[4].innerText = itemArray[i-1].dswp;
-            tr_list[i].getElementsByTagName("td")[5].innerText = itemArray[i-1].cfpal;
-            tr_list[i].getElementsByTagName("td")[6].innerText = itemArray[i-1].system;
+            for (var j = 0; j <= itemArray[0].length - 1; j++) {
+                tr_list[i].getElementsByTagName("td")[j].innerText = itemArray[i-1][j];
+            }
+            // tr_list[i].getElementsByTagName("td")[0].innerText = itemArray[i-1].ip;
+            // tr_list[i].getElementsByTagName("td")[1].innerText = itemArray[i-1].version;
+            // tr_list[i].getElementsByTagName("td")[2].innerText = itemArray[i-1].time;
+            // tr_list[i].getElementsByTagName("td")[3].innerText = itemArray[i-1].seconds;
+            // tr_list[i].getElementsByTagName("td")[4].innerText = itemArray[i-1].dswp;
+            // tr_list[i].getElementsByTagName("td")[5].innerText = itemArray[i-1].cfpal;
+            
         }
-        editClass();
+        if (tid == 0) {
+            editClass();
+        }
     }
     function editClass() {
         trCollection = document.getElementsByTagName('table')[0].getElementsByTagName('tr');
@@ -120,18 +131,19 @@
   </script>
  </head>
  <body>
-  <small>推荐使用chrome浏览器</small>
-  <select name="sort" id="sort" onchange="test()">
-    <option style="display:none">Please select sort type</option>
-    <option value="ip">NE IP</option>
-    <option value="version">Version</option>
-    <option value="seconds">System Run Time</option>
-    <option value="dswp">DSWP Status</option>
-    <option value="cfpal">CFPAL Audit Status</option>
-    <option value="system">System Operational Status</option>
-  </select>
-  <table>
-    <caption>Available NE (Numbers: <span id="n1"></span>)</caption>
+  <small>请使用chrome浏览器</small>
+  <table id="ne">
+    <caption>Available NE (Numbers: <span id="n1"></span>)
+     <select name="sort" id="sort" onchange="test(0, this.value)">
+      <option style="display:none">Please select sort type</option>
+      <option value="0">NE IP</option>
+      <option value="1">Version</option>
+      <option value="3">System Run Time</option>
+      <option value="4">DSWP Status</option>
+      <option value="5">CFPAL Audit Status</option>
+      <option value="6">System Operational Status</option>
+     </select>
+    </caption>
     <tr> 
      <th> NE IP </th> 
      <th> Version </th> 
@@ -141,8 +153,29 @@
      <th> System Operational Status </th> 
     </tr> 
   </table>
+  <table id="inventory">
+    <caption>NE Inventory (Items: <span></span>)
+     <select name="card" id="card" onchange="test(1, this.value)">
+      <option style="display:none">Please select sort type</option>
+      <option value="0">NE IP</option>
+      <option value="1">Slot</option>
+      <option value="2">Card</option>
+      <option value="3">SN</option>
+      <option value="4">H/W Revision</option>
+      <option value="5">H/W Option</option>
+     </select>
+    </caption>
+    <tr>
+     <th> NE IP </th>
+     <th> Slot </th>
+     <th> Card </th>
+     <th> SN </th>
+     <th> H/W Revision </th>
+     <th> H/W Option </th>
+    </tr>
+  </table>
   <table>
-    <caption>Unmanageable IP Address (Numbers: <span id="n2"></span>)</caption>
+    <caption>Unmanageable IP Address (Numbers: <span></span>)</caption>
   </table>
  </body>
 </html>

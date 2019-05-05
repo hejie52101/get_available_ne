@@ -13,12 +13,16 @@ from bs4 import BeautifulSoup as bs
 
 ne_info_list = []
 ne_excluded_dict = {}
+hardware_list = []
 
 def wait_end(chan, timeout = 30):
     start_time = time.time()
     result = ""
     while True:
-        if re.findall(r">", result[-5:]) or time.time() - start_time > timeout:
+        if re.findall(r">", result[-5:]):
+            break
+        elif time.time() - start_time > timeout:
+            result = ""
             break
         else:
             time.sleep(0.3)
@@ -87,6 +91,8 @@ def get_ne_status(ip):
     chan, version_rst = wait_end(chan)
     chan.send("\nshow system status|no-more\n")
     chan, sys_status  = wait_end(chan)
+    chan.send("\nshow chassis hardware detail | except 'Card Mac Addr|Vendor' | no-more\n")
+    chan, hardware_rst = wait_end(chan)
     ssh.close()
     if version_rst:
         version = re.findall(r"Software Release.*: (\S+)", version_rst)[0]
@@ -96,6 +102,11 @@ def get_ne_status(ip):
         run_time, dswp_status, cfpal_status, system_status = re.findall(r"Run time.*: (.*)\r\n.*DSWP Status.*: (\w+).*\n.*CFPAL.*: (\w+).*\n.*Operational Status.*: (\w+)", sys_status)[0]
     else:
         run_time=dswp_status=cfpal_status=system_status = "NA"
+    if hardware_rst:
+        hardware = re.findall(r"\+ (\w+) *: (\S+).*\r\n *Serial Number : (\w+) *\r\n *H/W Revision *: *(\S+) *\r\n *H/W Option *: (\S+)", hardware_rst)
+        if hardware:
+            for x in hardware:
+                hardware_list.append({"ip": ip, "slot": x[0], "card": x[1], "serial_num": str(x[2]), "hw_revision": x[3], "hw_option": x[4]})
     if run_time != "NA":
         # 2 days, 1 hour, 58 minutes, 41 seconds
         if "day" not in run_time:
@@ -128,8 +139,10 @@ def get_ne_status(ip):
         ne_info_list.append({"ip":ip, "status":"Pass", "version":version, "time":run_time, "seconds": seconds, "dswp":dswp_status, "cfpal":cfpal_status, "system":system_status})
 
 if __name__ == '__main__':
-    temp_path = r"E:\Study\Python\get_available_ne\temp.html"
-    html_path = r"E:\Study\Python\get_available_ne\available_ne.html"
+    # temp_path = r"E:\Study\Python\get_available_ne\temp.html"
+    # html_path = r"E:\Study\Python\get_available_ne\available_ne.html"
+    temp_path = r"E:\Temp\temp.html"
+    html_path = r"E:\Temp\available_ne.html"
     ne_flag_list = ["180", "130", "121", "150", "122"]
     try:
         for flag in ne_flag_list:
@@ -148,6 +161,7 @@ if __name__ == '__main__':
     db = pymysql.connect(host="172.18.98.199", user="test", password="eci_test", db="test", port=3306)
     cursor = db.cursor()
     cursor.execute("TRUNCATE `available_ne`;")
+    cursor.execute("TRUNCATE `ne_inventory`;")
     db.commit()
     with open(temp_path, "r", encoding='utf-8') as f:
         html_doc = f.read()
@@ -157,7 +171,7 @@ if __name__ == '__main__':
         cursor.execute(sql)
         db.commit()
         soup.table.append(soup.new_tag("tr"))
-        tr = soup.find_all("tr")[-1]
+        tr = soup.find_all("tr")[-2]
         if ne_info["status"] == "Pass":
             tr["class"] = "pass"
         else:
@@ -166,7 +180,18 @@ if __name__ == '__main__':
             if x != "status":
                 tr.append(soup.new_tag("td"))
                 soup.find_all("td")[-1].string = ne_info[x]
+    for card_info in hardware_list:
+        sql = "INSERT INTO `test`.`ne_inventory` (`ip`, `slot`, `card`, `serial_num`, `hw_revision`, `hw_option`) VALUES ('"+card_info["ip"]+"', '"+card_info["slot"]+"', '"+card_info["card"]+"', '"+card_info["serial_num"]+"', '"+card_info["hw_revision"]+"', '"+card_info["hw_option"]+"');"
+        cursor.execute(sql)
+        db.commit()
+        soup.find_all('table')[1].append(soup.new_tag('tr'))
+        tr = soup.find_all('tr')[-1]
+        print(card_info)
+        for x in card_info:
+            tr.append(soup.new_tag('td'))
+            soup.find_all('td')[-1].string = card_info[x]
     db.close()
+    soup.find_all('span')[1].string = str(len(hardware_list))
     for ips in ne_excluded_dict:
         ne_excluded_dict[ips].sort(key=lambda i:(int(i.split(".")[0])*256*256*256+int(i.split(".")[1])*256*256+int(i.split(".")[2])*256+int(i.split(".")[3])))
     unknown_ip_number = 0
