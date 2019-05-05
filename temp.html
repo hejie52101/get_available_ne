@@ -54,11 +54,11 @@
         ipSplit = ip.split(".")
         return parseInt(ipSplit[3])+parseInt(ipSplit[2])*256+parseInt(ipSplit[1])*65535+parseInt(ipSplit[0])*16777216
     }
-    function sortByProperty(propertyName){
+    function sortByProperty(tid, propertyName){
         var sortFun = function(obj1,obj2){
             if (propertyName == "0") {
                 return parseIp(obj1[propertyName]) - parseIp(obj2[propertyName]);
-            }else if(propertyName == "3"){
+            }else if(tid == 0 && propertyName == "3"){
                 return obj1[propertyName] - obj2[propertyName]
             }else if(obj1[propertyName] > obj2[propertyName]){
                 return 1;
@@ -101,7 +101,7 @@
             //     }
             // };
         }
-        itemArray.sort(sortByProperty(property))
+        itemArray.sort(sortByProperty(tid, property))
         for (var i = tr_list.length - 1; i >= 1; i--) {
             for (var j = 0; j <= itemArray[0].length - 1; j++) {
                 tr_list[i].getElementsByTagName("td")[j].innerText = itemArray[i-1][j];

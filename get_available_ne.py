@@ -184,7 +184,6 @@ if __name__ == '__main__':
         db.commit()
         soup.find_all('table')[1].append(soup.new_tag('tr'))
         tr = soup.find_all('tr')[-1]
-        print(card_info)
         for x in card_info:
             tr.append(soup.new_tag('td'))
             soup.find_all('td')[-1].string = card_info[x]
