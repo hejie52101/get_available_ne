@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>
+   NE Status
+  </title>
+  <style>
+    small{
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    table{
+      font-family: arial, sans-serif;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    caption{
+        font-size: 26px;
+        font-weight: bold;
+        padding: 10px;
+    }
+    td, th {
+        border: 1px solid #aaaaaa;
+        text-align: center;
+        padding: 4px;
+    }
+    td:nth-of-type(1) {
+        text-align: left;
+    }
+    td:nth-of-type(3) {
+        text-align: left;
+    }
+    td:nth-of-type(4) {
+        display: none;
+    }
+
+    select {
+        position: absolute;
+        right: 10px;
+        top: 40px;
+    }
+    .pass {
+        background-color: rgb(198,239,206);
+    }
+
+    .fail {
+        background-color: rgb(255,199,206);
+    }
+
+    .unknow {
+      background-color: rgb(255,235,156);
+    }
+  </style>
+  <script type="text/javascript">
+    function parseIp(ip) {
+        ipSplit = ip.split(".")
+        return parseInt(ipSplit[3])+parseInt(ipSplit[2])*256+parseInt(ipSplit[1])*65535+parseInt(ipSplit[0])*16777216
+    }
+    function sortByProperty(propertyName){
+        var sortFun = function(obj1,obj2){
+            if (propertyName == "ip") {
+                return parseIp(obj1[propertyName]) - parseIp(obj2[propertyName]);
+            }else if(propertyName == "seconds"){
+                return obj1[propertyName] - obj2[propertyName]
+            }else if(obj1[propertyName] > obj2[propertyName]){
+                return 1;
+            }else if(obj1[propertyName] == obj2[propertyName]){
+                return 0;
+            }else{
+                return -1;
+            }
+        }
+        return sortFun;
+    }
+    window.onload = function() {
+        getNumber()
+        test("ip");
+    };
+    function getNumber() {
+        document.getElementById('n1').innerText = document.getElementsByTagName('table')[0].rows.length-1;
+        // document.getElementById('n2').innerText = document.getElementsByTagName('table')[1].rows.length;
+    }
+    function test(property = document.getElementById("sort").value) {
+        tr_list = document.getElementsByTagName("table")[0].getElementsByTagName("tr");
+        var itemArray = new Array()
+        for (var i = tr_list.length - 1; i >= 1; i--) {
+            itemArray[i-1]= {
+                ip: tr_list[i].getElementsByTagName("td")[0].innerText.trim(),
+                version: tr_list[i].getElementsByTagName("td")[1].innerText.trim(),
+                time: tr_list[i].getElementsByTagName("td")[2].innerText.trim(),
+                seconds: tr_list[i].getElementsByTagName("td")[3].innerText.trim(),
+                dswp: tr_list[i].getElementsByTagName("td")[4].innerText.trim(),
+                cfpal: tr_list[i].getElementsByTagName("td")[5].innerText.trim(),
+                system: tr_list[i].getElementsByTagName("td")[6].innerText.trim()
+            };
+        }
+        itemArray.sort(sortByProperty(property))
+        for (var i = tr_list.length - 1; i >= 1; i--) {
+            tr_list[i].getElementsByTagName("td")[0].innerText = itemArray[i-1].ip;
+            tr_list[i].getElementsByTagName("td")[1].innerText = itemArray[i-1].version;
+            tr_list[i].getElementsByTagName("td")[2].innerText = itemArray[i-1].time;
+            tr_list[i].getElementsByTagName("td")[3].innerText = itemArray[i-1].seconds;
+            tr_list[i].getElementsByTagName("td")[4].innerText = itemArray[i-1].dswp;
+            tr_list[i].getElementsByTagName("td")[5].innerText = itemArray[i-1].cfpal;
+            tr_list[i].getElementsByTagName("td")[6].innerText = itemArray[i-1].system;
+        }
+        editClass();
+    }
+    function editClass() {
+        trCollection = document.getElementsByTagName('table')[0].getElementsByTagName('tr');
+        for (var i = trCollection.length - 1; i >= 1; i--) {
+            if (trCollection[i].innerText.search(/(Down|Starting|NA)/g) == -1) {
+                trCollection[i].setAttribute('class','pass');
+            } else {
+                trCollection[i].setAttribute('class','fail');
+            } 
+        }
+    }
+  </script>
+ </head>
+ <body>
+  <small>推荐使用chrome浏览器</small>
+  <select name="sort" id="sort" onchange="test()">
+    <option style="display:none">Please select sort type</option>
+    <option value="ip">NE IP</option>
+    <option value="version">Version</option>
+    <option value="seconds">System Run Time</option>
+    <option value="dswp">DSWP Status</option>
+    <option value="cfpal">CFPAL Audit Status</option>
+    <option value="system">System Operational Status</option>
+  </select>
+  <table>
+    <caption>Available NE (Numbers: <span id="n1"></span>)</caption>
+    <tr> 
+     <th> NE IP </th> 
+     <th> Version </th> 
+     <th> System Run time </th> 
+     <th> DSWP Status </th> 
+     <th> CFPAL Audit Status </th> 
+     <th> System Operational Status </th> 
+    </tr> 
+  </table>
+  <table>
+    <caption>Unmanageable IP Address (Numbers: <span id="n2"></span>)</caption>
+  </table>
+ </body>
+</html>
