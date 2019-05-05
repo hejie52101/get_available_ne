@@ -139,10 +139,8 @@ def get_ne_status(ip):
         ne_info_list.append({"ip":ip, "status":"Pass", "version":version, "time":run_time, "seconds": seconds, "dswp":dswp_status, "cfpal":cfpal_status, "system":system_status})
 
 if __name__ == '__main__':
-    # temp_path = r"E:\Study\Python\get_available_ne\temp.html"
-    # html_path = r"E:\Study\Python\get_available_ne\available_ne.html"
-    temp_path = r"E:\Temp\temp.html"
-    html_path = r"E:\Temp\available_ne.html"
+    temp_path = r"E:\Study\Python\get_available_ne\temp.html"
+    html_path = r"E:\Study\Python\get_available_ne\available_ne.html"
     ne_flag_list = ["180", "130", "121", "150", "122"]
     try:
         for flag in ne_flag_list:
