@@ -46,14 +46,33 @@ class my_thread(threading.Thread):
             self.exitcode = 1
             self.exc_traceback = ''.join(traceback.format_exception(*sys.exc_info()))
 
-def search_ne(flag):
+def search_ne(net):
     print("%s: start to search all NEs..." % threading.current_thread().name)
     sys.stdout.flush()
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect("172.18.98.199", 22, "root", "eci_root")
-    stdin, stdout, stderr = ssh.exec_command("nmap -sn 200.200." + flag + ".0/24 -n")
-    ne_list = re.findall(r"200\.200\."+flag+r"\.\d+", stdout.read().decode(errors='ignore'))
+    ssh.connect("10.10.1.199", 22, "root", "eci_root")
+    stdin, stdout, stderr = ssh.exec_command("ip route")
+    if re.sub(r"\d+\.\d+(/\d+)?$", "0.0/16", net) not in stdout.read().decode(errors='ignore'):
+        ip_last = 199
+        while(True):
+            ip_add = re.sub(r"\d+/\d+", str(ip_last), net)
+            stdin, stdout, stderr = ssh.exec_command("arping -I eth1 " + ip_add + " -c 3")
+            if "rtt" not in stdout.read().decode(errors='ignore'):
+                break
+            else:
+                ip_last += 1
+                if ip_last > 254:
+                    raise Exception("Can not find available ip address for local PC.")
+        stdin, stdout, stderr = ssh.exec_command("ip addr add " + ip_add + " dev eth1")
+        stdout.read().decode(errors='ignore')
+        print("%s: Add the ip address: %s" % (threading.current_thread().name, ip_add))
+        sys.stdout.flush()
+    stdin, stdout, stderr = ssh.exec_command("nmap -p22 " + net + " -n")
+    rst_nmap = stdout.read().decode(errors='ignore')
+    pattern = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}).*\n.*\n\n.*\n.*tcp open")
+    ne_list = pattern.findall(rst_nmap)
+    print(ne_list)
     ssh.close()
     try:
         for ip in ne_list:
@@ -95,11 +114,19 @@ def get_ne_status(ip):
     chan, hardware_rst = wait_end(chan)
     ssh.close()
     if version_rst:
-        version = re.findall(r"Software Release.*: (\S+)", version_rst)[0]
+        try:
+            version = re.findall(r"Software Release.*: (\S+)", version_rst)[0]
+        except:
+            version = "NA"
+            print("%s: get version info error." % threading.current_thread().name)
     else:
         version = "NA"
     if sys_status:
-        run_time, dswp_status, cfpal_status, system_status = re.findall(r"Run time.*: (.*)\r\n.*DSWP Status.*: (\w+).*\n.*CFPAL.*: (\w+).*\n.*Operational Status.*: (\w+)", sys_status)[0]
+        try:
+            run_time, dswp_status, cfpal_status, system_status = re.findall(r"Run time.*: (.*)\r\n.*DSWP Status.*: (\w+).*\n.*CFPAL.*: (\w+).*\n.*Operational Status.*: (\w+)", sys_status)[0]
+        except:
+            run_time=dswp_status=cfpal_status=system_status = "NA"
+            print("%s: get sys_status info error." % threading.current_thread().name)
     else:
         run_time=dswp_status=cfpal_status=system_status = "NA"
     if hardware_rst:
@@ -139,24 +166,25 @@ def get_ne_status(ip):
         ne_info_list.append({"ip":ip, "status":"Pass", "version":version, "time":run_time, "seconds": seconds, "dswp":dswp_status, "cfpal":cfpal_status, "system":system_status})
 
 if __name__ == '__main__':
-    temp_path = r"E:\Study\Python\get_available_ne\temp.html"
-    html_path = r"E:\Study\Python\get_available_ne\available_ne.html"
-    ne_flag_list = ["180", "130", "121", "150", "122"]
+    temp_path = r"/root/jenkins/jobs/get_available_ne/temp.html"
+    html_path = r"/root/jenkins/jobs/get_available_ne/available_ne.html"
+    ne_net_list = sys.argv[1].replace(" ", "").split(",")
+    # ne_net_list = ['200.200.180.24/24','200.200.121.0/24']
     try:
-        for flag in ne_flag_list:
-            locals()["s_" + flag] = my_thread(func=search_ne, args=(flag,), name="s_"+flag)
-            locals()["s_" + flag].start()
-        for flag in ne_flag_list:
-            locals()["s_"+flag].join()
-        for flag in ne_flag_list:
-            if locals()["s_"+flag].exitcode == 1:
-                raise Exception(locals()["s_"+flag].exc_traceback)
+        for net in ne_net_list:
+            locals()["s_" + net] = my_thread(func=search_ne, args=(net,), name="s_"+net)
+            locals()["s_" + net].start()
+        for net in ne_net_list:
+            locals()["s_"+net].join()
+        for net in ne_net_list:
+            if locals()["s_"+net].exitcode == 1:
+                raise Exception(locals()["s_"+net].exc_traceback)
         print("Thread %s ended." % threading.current_thread().name)
         sys.stdout.flush()
     except Exception as e:
         raise e
 
-    db = pymysql.connect(host="172.18.98.199", user="test", password="eci_test", db="test", port=3306)
+    db = pymysql.connect(host="10.10.1.199", user="test", password="eci_test", db="test", port=3306)
     cursor = db.cursor()
     cursor.execute("TRUNCATE `available_ne`;")
     cursor.execute("TRUNCATE `ne_inventory`;")
